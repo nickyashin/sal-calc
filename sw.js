@@ -1,7 +1,7 @@
 /**
  * sw.js — Service Worker עבור התקנה כאפליקציית מסך בית (PWA) ועבודה חלקה גם ללא קליטה
  */
-const CACHE_NAME = "anna-shift-calc-rose-v4";
+const CACHE_NAME = "anna-shift-calc-rose-v5";
 const APP_SHELL_ASSETS = [
   "./",
   "./index.html",
