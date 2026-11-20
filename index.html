@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#D4628A" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="שעות ושכר" />
+  <title>מעקב שעות ושכר — אנה מירושניצ'נקו (LTS)</title>
+
+  <!-- PWA Manifest & App Icons -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+
+  <!-- Fonts: Heebo (Hebrew UI) + JetBrains Mono (Tabular numbers for hours & currency) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./style.css" />
+
+  <!-- SheetJS CDN for client-side Excel (.xlsx / .xls / .csv) import -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Compact Bar -->
+    <header class="top-bar">
+      <div class="top-bar-right">
+        <div class="brand-block">
+          <span class="brand-title">שעות ושכר</span>
+          <span class="brand-subtitle">אנה מירושניצ'נקו · LTS</span>
+        </div>
+        <div class="sync-indicator" id="syncIndicator" title="סטטוס סנכרון ענן">
+          <span class="sync-dot" id="syncDot"></span>
+          <span class="sync-text" id="syncText">מתחבר...</span>
+        </div>
+      </div>
+
+      <div class="month-nav" aria-label="בחירת חודש ושנה">
+        <button type="button" class="icon-btn" id="prevMonthBtn" aria-label="חודש קודם" title="חודש קודם">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+
+        <div class="month-selectors">
+          <select id="monthSelect" class="select-compact" aria-label="חודש"></select>
+          <select id="yearSelect" class="select-compact mono" aria-label="שנה"></select>
+        </div>
+
+        <button type="button" class="icon-btn" id="nextMonthBtn" aria-label="חודש הבא" title="חודש הבא">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+
+        <button type="button" class="btn-subtle" id="jumpTodayBtn" title="קפוץ לתאריך של היום">היום</button>
+      </div>
+
+      <div class="top-bar-actions">
+        <button type="button" class="btn-install" id="installPwaBtn" hidden title="התקנה למסך הבית">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span class="btn-label">התקן אפליקציה</span>
+        </button>
+
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" hidden />
+        <button type="button" class="btn-secondary" id="importExcelBtn" title="ייבוא שעות מקובץ אקסל">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span class="btn-label">ייבוא מאקסל</span>
+        </button>
+
+        <button type="button" class="icon-btn" id="openGlobalSettingsBtn" aria-label="הגדרות גלובליות" title="הגדרות גלובליות">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Sticky Monthly Summary Card -->
+    <section class="summary-card" id="summaryCard" aria-label="סיכום שכר חודשי">
+      <div class="summary-primary-row">
+        <div class="metric-item">
+          <span class="metric-label">סה"כ שעות</span>
+          <span class="metric-value mono" id="sumTotalHours">0.00</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="metric-label">שכר + נסיעות</span>
+          <span class="metric-value mono" id="sumCashGross">0.00 ₪</span>
+        </div>
+
+        <div class="metric-item">
+          <span class="metric-label">ברוטו למס</span>
+          <span class="metric-value mono" id="sumTaxableGross">0.00 ₪</span>
+        </div>
+
+        <div class="metric-item metric-net">
+          <span class="metric-label">נטו צפוי לבנק</span>
+          <span class="metric-value mono" id="sumNetToBank">0.00 ₪</span>
+        </div>
+
+        <button
+          type="button"
+          class="summary-toggle-btn"
+          id="toggleBreakdownBtn"
+          aria-expanded="false"
+          aria-controls="summaryBreakdown"
+        >
+          <span id="toggleBreakdownLabel">פירוט מלא</span>
+          <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Compact Accrued Leave Balances Strip -->
+      <div class="leave-strip" aria-label="יתרות צבורות של חופשה ומחלה">
+        <div class="leave-pill">
+          <span class="leave-pill-label">יתרת חופשה צבורה</span>
+          <span class="leave-pill-value mono" id="sumVacBalance">0.00</span>
+          <span class="leave-pill-unit">ימים</span>
+        </div>
+        <div class="leave-pill">
+          <span class="leave-pill-label">יתרת מחלה צבורה</span>
+          <span class="leave-pill-value mono" id="sumSickBalance">0.00</span>
+          <span class="leave-pill-unit">ימים</span>
+        </div>
+      </div>
+
+      <!-- Expandable Detailed Breakdown -->
+      <div class="summary-breakdown" id="summaryBreakdown" hidden>
+        <div class="breakdown-grid">
+          <div class="breakdown-col">
+            <h3 class="breakdown-title">רכיבי שכר והטבות</h3>
+            <div class="breakdown-row">
+              <span>שכר עבודה בפועל (כולל חופש/מחלה)</span>
+              <span class="mono" id="bdWorkGross">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row">
+              <span>דמי נסיעות קבועים</span>
+              <span class="mono" id="bdTravel">315.00 ₪</span>
+            </div>
+            <div class="breakdown-row breakdown-subtotal">
+              <span>סה"כ לתשלום ברוטו (מזומן)</span>
+              <span class="mono" id="bdCashGross">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row">
+              <span>זקיפת שווי תן ביס (למס בלבד)</span>
+              <span class="mono" id="bdTenBis">750.00 ₪</span>
+            </div>
+            <div class="breakdown-row" id="bdHealthImputedRow" hidden>
+              <span>זקיפת שווי ביטוח בריאות</span>
+              <span class="mono" id="bdHealthImputed">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row breakdown-subtotal">
+              <span>סך ברוטו חייב במס</span>
+              <span class="mono" id="bdTaxableGross">0.00 ₪</span>
+            </div>
+          </div>
+
+          <div class="breakdown-col">
+            <h3 class="breakdown-title">ניכויי חובה ופנסיה</h3>
+            <div class="breakdown-row">
+              <span>מס הכנסה (לאחר נקודות זיכוי וזיכוי פנסיה)</span>
+              <span class="mono text-deduction" id="bdIncomeTax">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row">
+              <span>ביטוח לאומי</span>
+              <span class="mono text-deduction" id="bdNationalInsurance">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row">
+              <span>מס בריאות</span>
+              <span class="mono text-deduction" id="bdHealthTax">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row">
+              <span>פנסיה חלק עובד (<span id="bdPensionPctLabel">6</span>% משכר קובע)</span>
+              <span class="mono text-deduction" id="bdPension">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row breakdown-subtotal">
+              <span>סה"כ ניכויים</span>
+              <span class="mono text-deduction" id="bdTotalDeductions">0.00 ₪</span>
+            </div>
+            <div class="breakdown-row breakdown-meta">
+              <span>שכר קובע לפנסיה · שעות: רגילות / 125% / 150%+</span>
+              <span class="mono" id="bdHoursMeta">0 ₪ · 0 / 0 / 0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="leave-breakdown-bar">
+          <div class="breakdown-row">
+            <span>פירוט חופשה (מאז 15/11/2026)</span>
+            <span class="mono" id="bdVacationDetail">נצברו 0.00 · נוצלו 0 · יתרה 0.00</span>
+          </div>
+          <div class="breakdown-row">
+            <span>פירוט מחלה (עד תקרת 90 ימים)</span>
+            <span class="mono" id="bdSickDetail">נצברו 0.00 · נוצלו 0 · יתרה 0.00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Days Table / List -->
+    <main class="days-container">
+      <div class="days-header" aria-hidden="true">
+        <span>תאריך ויום</span>
+        <span>כניסה ויציאה · מילוי מהיר</span>
+        <span>שעות / משמרת</span>
+        <span>ברוטו יומי</span>
+        <span></span>
+      </div>
+      <div class="days-list" id="daysList" role="list"></div>
+    </main>
+  </div>
+
+  <!-- Daily Settings Modal (Per-Day Gear) -->
+  <div class="modal-backdrop" id="dayModal" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="dayModalTitle">הגדרות יום</h2>
+          <p class="modal-subtitle mono" id="dayModalSubtitle"></p>
+        </div>
+        <button type="button" class="icon-btn" data-close-modal="dayModal" aria-label="סגור">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="daySettingsForm" class="modal-body">
+        <div class="form-group">
+          <label for="dayStatusSelect">סטטוס יום</label>
+          <select id="dayStatusSelect" class="form-control">
+            <option value="work">יום עבודה רגיל</option>
+            <option value="vacation">יום חופש (100% מתקן יומי)</option>
+            <option value="sick">יום מחלה (לפי רצף חוק דמי מחלה)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="sickOverrideGroup" hidden>
+          <label for="daySickOverrideSelect">דריסת מיקום ברצף מחלה (למשל המשך מחודש קודם)</label>
+          <select id="daySickOverrideSelect" class="form-control">
+            <option value="">זיהוי אוטומטי לפי הרצף בחודש</option>
+            <option value="1">יום מחלה 1 (0%)</option>
+            <option value="2">יום מחלה 2 או 3 (50%)</option>
+            <option value="4">יום מחלה 4 ואילך (100%)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="shiftTypeGroup">
+          <label for="dayShiftTypeSelect">סוג משמרת / תעריף ליום זה</label>
+          <select id="dayShiftTypeSelect" class="form-control">
+            <option value="auto">אוטומטי (זיהוי בוקר / ערב / שבת / חג)</option>
+            <option value="morning">משמרת בוקר (תקן רגיל)</option>
+            <option value="evening">משמרת ערב / לילה (7 שעות + נוספות 125%)</option>
+            <option value="shortened">יום מקוצר</option>
+            <option value="shabbat">שבת / חג (150% ומעלה)</option>
+            <option value="force100">כפה 100% לכל השעות</option>
+            <option value="force125">כפה 125% לכל השעות</option>
+            <option value="force150">כפה 150% לכל השעות</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="dayOverrideRateInput">שכר שעתי מותאם ליום זה בלבד (ש"ח)</label>
+          <input
+            type="number"
+            id="dayOverrideRateInput"
+            class="form-control mono"
+            step="0.01"
+            min="0"
+            placeholder="ברירת מחדל לפי ותק"
+          />
+          <span class="field-hint" id="dayDefaultRateHint"></span>
+        </div>
+
+        <div class="modal-footer modal-footer-between">
+          <button type="button" class="btn-danger-ghost" id="clearDayBtn">נקה נתוני יום</button>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" data-close-modal="dayModal">ביטול</button>
+            <button type="submit" class="btn-primary">שמור שינויים</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Global Settings Modal -->
+  <div class="modal-backdrop" id="globalModal" hidden>
+    <div class="modal-dialog modal-lg" role="dialog" aria-modal="true" aria-labelledby="globalModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="globalModalTitle">הגדרות גלובליות — הסכם LTS ומיסוי</h2>
+          <p class="modal-subtitle">שינויים נשמרים אוטומטית בענן ומעדכנים את החישוב בזמן אמת</p>
+        </div>
+        <button type="button" class="icon-btn" data-close-modal="globalModal" aria-label="סגור">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="globalSettingsForm" class="modal-body">
+        <!-- Section: Workweek & Shifts -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">תקן שבוע עבודה ומשמרות</h3>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="cfgStandardHours">תקן יום רגיל (שעות)</label>
+              <input type="number" id="cfgStandardHours" class="form-control mono" step="0.1" min="4" max="12" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgShortenedHours">תקן יום מקוצר (שעות)</label>
+              <input type="number" id="cfgShortenedHours" class="form-control mono" step="0.1" min="4" max="12" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgShortenedWeekday">יום מקוצר קבוע בשבוע</label>
+              <select id="cfgShortenedWeekday" class="form-control">
+                <option value="-1">ללא יום מקוצר קבוע</option>
+                <option value="0">יום ראשון</option>
+                <option value="1">יום שני</option>
+                <option value="2">יום שלישי</option>
+                <option value="3">יום רביעי</option>
+                <option value="4">יום חמישי</option>
+                <option value="5">יום שישי</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="cfgNightHours">תקן משמרת ערב/לילה (שעות)</label>
+              <input type="number" id="cfgNightHours" class="form-control mono" step="0.1" min="4" max="10" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgShabbatPercent">תעריף שבת / חג (%)</label>
+              <input type="number" id="cfgShabbatPercent" class="form-control mono" step="5" min="100" max="250" required />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Leave Balances Accrual -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">צבירת ימי חופשה ומחלה</h3>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="cfgStartDate">תאריך תחילת העסקה</label>
+              <input type="date" id="cfgStartDate" class="form-control mono" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgVacAccrual">צבירת חופשה בחודש (ימים)</label>
+              <input type="number" id="cfgVacAccrual" class="form-control mono" step="0.05" min="0" max="5" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgSickAccrual">צבירת מחלה בחודש (ימים)</label>
+              <input type="number" id="cfgSickAccrual" class="form-control mono" step="0.05" min="0" max="5" required />
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="cfgVacOpening">יתרת פתיחה חופשה (ימים)</label>
+              <input type="number" id="cfgVacOpening" class="form-control mono" step="0.25" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgSickOpening">יתרת פתיחה מחלה (ימים)</label>
+              <input type="number" id="cfgSickOpening" class="form-control mono" step="0.25" required />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Wage Tiers -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3 class="settings-section-title">מדרגות שכר שעתי לפי תאריך (סעיף 10)</h3>
+            <button type="button" class="btn-subtle" id="addWageTierBtn">+ הוסף מדרגה</button>
+          </div>
+          <div id="wageTiersContainer" class="dynamic-rows"></div>
+        </div>
+
+        <!-- Section: Allowances & Imputed Benefits -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">נסיעות וזקיפות שווי למס</h3>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="cfgTravel">דמי נסיעות חודשיים (ש"ח)</label>
+              <input type="number" id="cfgTravel" class="form-control mono" step="1" min="0" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgTenBis">זקיפת שווי תן ביס (ש"ח)</label>
+              <input type="number" id="cfgTenBis" class="form-control mono" step="1" min="0" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgHealthImputed">שווי ביטוח בריאות (ש"ח)</label>
+              <input type="number" id="cfgHealthImputed" class="form-control mono" step="1" min="0" required />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Tax, Pension & Credit Points -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">מס הכנסה, פנסיה ונקודות זיכוי</h3>
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="cfgCreditPoints">נקודות זיכוי</label>
+              <input type="number" id="cfgCreditPoints" class="form-control mono" step="0.25" min="0" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgCreditPointValue">שווי נקודת זיכוי (ש"ח)</label>
+              <input type="number" id="cfgCreditPointValue" class="form-control mono" step="1" min="0" required />
+            </div>
+            <div class="form-group">
+              <label for="cfgPensionPercent">פנסיה חלק עובד (%)</label>
+              <input type="number" id="cfgPensionPercent" class="form-control mono" step="0.1" min="0" max="15" required />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Tax Brackets -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">מדרגות מס הכנסה חודשיות (ש"ח / %)</h3>
+          <div id="taxBracketsContainer" class="dynamic-rows"></div>
+        </div>
+
+        <!-- Section: Cloud Sync Config -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <h3 class="settings-section-title">חיבור ענן (Firebase) והתקנה למסך הבית</h3>
+            <button type="button" class="btn-subtle" id="openFirebaseSetupFromSettingsBtn">הגדרת מפתח Firebase מקומי</button>
+          </div>
+          <p class="field-hint">
+            באייפון (Safari): לחצי על כפתור השיתוף ובחרי "הוסף למסך הבית". באנדרואיד (Chrome): לחצי על "התקן אפליקציה" בסרגל העליון.
+          </p>
+        </div>
+
+        <div class="modal-footer modal-footer-between">
+          <button type="button" class="btn-danger-ghost" id="resetDefaultSettingsBtn">איפוס לברירת מחדל LTS</button>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" data-close-modal="globalModal">ביטול</button>
+            <button type="submit" class="btn-primary">שמור הגדרות</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- One-Time Firebase Config Modal -->
+  <div class="modal-backdrop" id="firebaseSetupModal" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="firebaseModalTitle">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="firebaseModalTitle">חיבור חד-פעמי לענן (Firebase)</h2>
+          <p class="modal-subtitle">קובץ firebase-config.js אינו קיים בשרת הציבורי מטעמי אבטחה</p>
+        </div>
+        <button type="button" class="icon-btn" data-close-modal="firebaseSetupModal" aria-label="סגור">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="firebaseConfigForm" class="modal-body">
+        <div class="form-group">
+          <label for="firebaseConfigTextarea">הדבק את אובייקט ה-firebaseConfig שלך (JSON או קוד JS)</label>
+          <textarea
+            id="firebaseConfigTextarea"
+            class="form-control mono code-textarea"
+            dir="ltr"
+            rows="9"
+            placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'
+            required
+          ></textarea>
+          <span class="field-hint">
+            ההגדרות יישמרו פעם אחת בלבד ב-localStorage של מכשיר זה ויאפשרו סנכרון אוטומטי מלא בין הטלפון למחשב.
+          </span>
+        </div>
+
+        <div class="modal-footer modal-footer-between">
+          <button type="button" class="btn-danger-ghost" id="clearLocalFirebaseConfigBtn">נקה מפתח שמור</button>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" data-close-modal="firebaseSetupModal">עבוד מקומית כרגע</button>
+            <button type="submit" class="btn-primary">חבר ושמור במכשיר</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script type="module" src="./app.js?v=4"></script>
+</body>
+</html>

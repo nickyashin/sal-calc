@@ -1,0 +1,8 @@
+# הסתרת קובץ הקונפיגורציה האמיתי של Firebase מ-GitHub
+firebase-config.js
+
+# קבצי מערכת ועורך
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

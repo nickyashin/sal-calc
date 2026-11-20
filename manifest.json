@@ -1,0 +1,32 @@
+{
+  "name": "שעות ושכר — אנה מירושניצ'נקו (LTS)",
+  "short_name": "שעות ושכר",
+  "description": "מעקב שעות עבודה, משמרות, יתרות חופשה ומחלה וחישוב שכר נטו בזמן אמת",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "he",
+  "background_color": "#FDF7F9",
+  "theme_color": "#D4628A",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
